@@ -1,11 +1,13 @@
 package cat.dam.alex.mosquitoattack;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.graphics.drawable.AnimationDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -23,17 +25,11 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
-
-    //MEJORAS: hacer que cada vez que se mata a un mosquito se gane 1s
-
-    //todo: mosquito speed no se lee bien en el countdown, no se pueden crear mas mosquitos a la vez
-
     public final int DEFAUL_TIME = 50;
     public int time = DEFAUL_TIME;
     public int score = 0;
-    public int mosquitoTimer = 6;
-    public int mosquitoCounter = 0;
     public int mosquitoSpeed = 1500;
+    public int difficulty = 1;
     public Random r = new Random();
 
     LinearLayout ll_content;
@@ -48,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
 
     Button btn_start;
 
-    ImageView iv_mosquito;
 
     //Temporitzador de temps
     CountDownTimer countDown = new CountDownTimer(time*1000, 1000) {
@@ -65,10 +60,15 @@ public class MainActivity extends AppCompatActivity {
     //Temporitzador de moviment del mosquit
     CountDownTimer mosquitoMovement =  new CountDownTimer(500000000, mosquitoSpeed) {
         public void onTick(long millisUntilFinished) {
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
 
-            for(ImageView m : mosquitoes){
-                m.setX(r.nextInt(1000));
-                m.setY(r.nextInt(1000));
+
+
+            for(ImageView m : mosquitoes) {
+                params.leftMargin = r.nextInt(500);
+                params.topMargin = r.nextInt(500);
+
+                m.setLayoutParams(params);
             }
         }
         public void onFinish() {
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
         btn_start = (Button) findViewById(R.id.btn_start);
 
-
+        ll_content = (LinearLayout)findViewById(R.id.ll_content);
 
         tv_time.setText("Time: " + time);
         tv_score.setText("Score: " + score);
@@ -106,41 +106,57 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void randomMosquito(){
-        //Hacer aparecer mosquito random
+
+    //Funció que inicia un mosquit o varís segons el nivell de dificultat en el que s'estigui
+    public void initMosquito(){
+        if(score % 5 != 0 || score == 0){
+            createMosquito();
+
+        }else{
+            difficulty++;
+            checkDifficulty();
+            mosquitoSpeed = mosquitoSpeed-500;
+        }
     }
 
-    public void initMosquito(){
+    //Funció que crea un mosquit segons la dificultat en la que s'estigui
+    public void checkDifficulty(){
+        for (int i=0;i<difficulty;i++){
+            createMosquito();
+        }
+    }
 
-        mosquitoes.add((ImageView) findViewById(R.id.iv_mosquito));
-        System.out.println(mosquitoes.size());
+    //Funció que crea un mosquit, el seu listener i la seva posició
+    public void createMosquito(){
+        mosquitoes.add((ImageView) new ImageView(MainActivity.this));
+
         createOnClickListener( mosquitoes.get(mosquitoes.size()-1));
 
         mosquitoes.get(mosquitoes.size()-1).setBackgroundResource(R.drawable.mosquito_anim_list);
         mosquitoes.get(mosquitoes.size()-1).setVisibility(View.VISIBLE);
 
-        mosquitoes.get(mosquitoes.size()-1).setX(r.nextInt(1000));
-        mosquitoes.get(mosquitoes.size()-1).setY(r.nextInt(1000));
+        mosquitoes.get(mosquitoes.size()-1).setX(r.nextInt(500));
+        mosquitoes.get(mosquitoes.size()-1).setY(r.nextInt(500));
 
-        if(score % 5 == 0){
-            mosquitoSpeed = mosquitoSpeed-500;
-        }
-        System.out.println(mosquitoSpeed);
+        ll_content.addView(mosquitoes.get(mosquitoes.size()-1));
+
         initMosquitoAnim();
         initMosquitoMovement();
     }
 
+    //Funció que inicia l'animació del mosquit
     public void initMosquitoAnim(){
         mosquito_anim_list = (AnimationDrawable) mosquitoes.get(mosquitoes.size()-1).getBackground();
         mosquito_anim_list.start();
     }
 
+    //Funció que inicia el moviment del mosquit
     public void initMosquitoMovement(){
         mosquitoMovement.start();
     }
 
+    //Funció que mostra l'animació de quan s'aplasta un mosquit
     public void smashedMosquito(ImageView mosquito){
-        //todo: disable onClick
         score++;
         tv_score.setText("Score: " + score);
         new CountDownTimer(800, 400) {
@@ -152,17 +168,17 @@ public class MainActivity extends AppCompatActivity {
                 smashed_anim_list = (AnimationDrawable) mosquito.getBackground();
                 smashed_anim_list.start();
 
+                mosquito.setEnabled(false); //Deshabilitem que es pugui fer click a l'imatge
             }
 
             public void onFinish() {
                 mosquito.setVisibility(View.GONE);
                 initMosquito();
-
             }
         }.start();
     }
 
-
+    //Funció que crea el listener dels mosquits
     public void createOnClickListener(ImageView m){
         m.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v){
@@ -171,18 +187,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    //Funció que mostra el contingut de quan es perd la partida
     public void lostGame(){
         time = DEFAUL_TIME;
         lostGameDialog();
         score = 0;
         tv_score.setText("Score: "+score);
-        System.out.println("Has perdut");
         for (ImageView m:mosquitoes) {
             m.setVisibility(View.GONE);
         }
         btn_start.setVisibility(View.VISIBLE);
     }
 
+    //Funció que mostra el dialog quan es perd
     public void lostGameDialog(){
         AlertDialog.Builder dialogo1 = new AlertDialog.Builder(this);
         dialogo1.setTitle("HAS PERDUT!!");

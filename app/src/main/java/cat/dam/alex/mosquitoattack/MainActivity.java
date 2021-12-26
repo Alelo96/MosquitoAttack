@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
-    public final int DEFAUL_TIME = 50;
+    public final int DEFAUL_TIME = 10;
     public int time = DEFAUL_TIME;
     public int score = 0;
     public int mosquitoSpeed = 1500;
@@ -48,7 +48,12 @@ public class MainActivity extends AppCompatActivity {
     //Temporitzador de temps
     CountDownTimer countDown = new CountDownTimer(time*1000, 1000) {
         public void onTick(long millisUntilFinished) {
-            tv_time.setText("Time: " + millisUntilFinished / 1000);
+            time--;
+            millisUntilFinished = time;
+            tv_time.setText("Time: " + time);
+
+            if (time == 0) countDown.onFinish();
+
         }
 
         public void onFinish() {
@@ -155,13 +160,16 @@ public class MainActivity extends AppCompatActivity {
         mosquitoMovement.start();
     }
 
-    //Funció que mostra l'animació de quan s'aplasta un mosquit
+    //Funció que mostra l'animació de quan s'aplasta un mosquit i suma +1 al comptador de temps
     public void smashedMosquito(ImageView mosquito){
         score++;
         tv_score.setText("Score: " + score);
         new CountDownTimer(800, 400) {
             public void onTick(long millisUntilFinished) {
-                time++;
+                time += 2; //Sumem +2 perque es mostra una vegad pasa un segon
+                countDown.cancel(); //Cancel·lem el comptador que hi ha per tal de que no hi hagi dos actius
+                countDown.start(); //I el tornem a iniciar amb el nou temps establert
+
 
                 //Carreguem l'animació de la sang
                 mosquito.setBackgroundResource(R.drawable.smashed_anim_list);
@@ -188,15 +196,18 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //Funció que mostra el contingut de quan es perd la partida
+    //Funció que mostra el contingut de quan es perd la partida i reinicia totes les variables
     public void lostGame(){
         time = DEFAUL_TIME;
+        countDown.cancel();
         lostGameDialog();
         score = 0;
         tv_score.setText("Score: "+score);
+
         for (ImageView m:mosquitoes) {
             m.setVisibility(View.GONE);
         }
+
         btn_start.setVisibility(View.VISIBLE);
     }
 
